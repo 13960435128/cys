@@ -1,0 +1,48 @@
+name: Build Windows Installer
+
+on:
+push:
+branches: [ main ]
+workflow_dispatch: {}
+
+jobs:
+build-windows:
+runs-on: windows-latest
+timeout-minutes: 120
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Setup Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: '18'
+      cache: 'npm'
+
+  - name: Install NSIS (required by electron-builder for NSIS target)
+    shell: pwsh
+    run: |
+      choco install nsis -y || echo "NSIS install failed or already present"
+
+  - name: Install dependencies
+    run: npm ci
+
+  - name: Build web assets
+    run: npm run build:web
+
+  - name: Package with electron-builder
+    run: npx electron-builder --win --x64 --publish never
+
+  - name: Upload installer artifacts
+    uses: actions/upload-artifact@v4
+    with:
+      name: installer-artifacts
+      path: |
+        dist/**/*.exe
+        dist/**/*.msi
+        dist/**/*.zip
+        dist/**/*.7z
+        out/**/*.exe
+        out/**/*.msi
+        out/**/*.zip
